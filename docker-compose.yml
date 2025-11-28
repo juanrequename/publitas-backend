@@ -1,0 +1,14 @@
+services:
+  feed-processor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: publitas-feed-processor
+    volumes:
+      # Mount data directory to allow processing different feed files
+      - ./data:/app/data:ro
+    environment:
+      - NODE_ENV=production
+    # Keep container running instead of executing once
+    command: tail -f /dev/null
+    restart: unless-stopped
