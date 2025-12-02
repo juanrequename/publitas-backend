@@ -1,7 +1,7 @@
 import ExternalService from './external.service';
 import { Product } from '../types/product';
+import { config, BYTES_PER_MB } from '../config';
 
-const MAX_BATCH_SIZE = 5 * 1024 * 1024;
 const EMPTY_JSON_ARRAY_SIZE = Buffer.byteLength('[]', 'utf8'); // 2 bytes
 const COMMA_SEPARATOR_SIZE = Buffer.byteLength(',', 'utf8'); // 1 byte
 
@@ -9,7 +9,7 @@ const COMMA_SEPARATOR_SIZE = Buffer.byteLength(',', 'utf8'); // 1 byte
  * Service for batching products for efficient bulk processing.
  *
  * The BatchService accumulates products and automatically flushes them
- * to an external service when the batch size approaches the 5MB limit.
+ * to an external service when the batch size approaches the configured limit.
  * This ensures that each API call stays within size constraints while
  * maximizing throughput by batching multiple products together.
  */
@@ -57,11 +57,11 @@ export class BatchService {
    * Adds a product to the current batch.
    *
    * If adding the product would cause the batch to reach or exceed the
-   * maximum size limit (5MB), the current batch is automatically flushed
+   * maximum size limit, the current batch is automatically flushed
    * before the new product is added.
    *
    * If a single product is so large that even a batch containing only that
-   * product would reach or exceed the 5MB limit, an error is thrown rather
+   * product would reach or exceed the limit, an error is thrown rather
    * than sending an invalid oversized batch.
    *
    * @param product - The product to add to the batch.
@@ -71,15 +71,19 @@ export class BatchService {
     const productByteSize = Buffer.byteLength(productJson, 'utf8');
 
     // Guard rail: reject products that cannot ever fit in a valid batch
-    if (EMPTY_JSON_ARRAY_SIZE + productByteSize >= MAX_BATCH_SIZE) {
-      const sizeMB = (productByteSize / (1024 * 1024)).toFixed(2);
+    if (EMPTY_JSON_ARRAY_SIZE + productByteSize >= config.maxBatchSize) {
+      const sizeMB = (productByteSize / BYTES_PER_MB).toFixed(2);
+      const limitMB = (config.maxBatchSize / BYTES_PER_MB).toFixed(0);
       throw new Error(
-        `Product size (${sizeMB}MB) exceeds 5MB batch size limit and cannot be added to any batch.`
+        `Product size (${sizeMB}MB) exceeds ${limitMB}MB batch size limit and cannot be added to any batch.`
       );
     }
 
-    // Flush if adding this product would reach or exceed the 5MB limit
-    if (this.currentBatchSize + this.calculateAdditionalSize(productByteSize) >= MAX_BATCH_SIZE) {
+    // Flush if adding this product would reach or exceed the limit
+    if (
+      this.currentBatchSize + this.calculateAdditionalSize(productByteSize) >=
+      config.maxBatchSize
+    ) {
       this.flush();
     }
 

@@ -163,8 +163,8 @@ describe('BatchService', () => {
       expect(JSON.parse(calledWith)).toEqual([product]);
     });
 
-    it('should throw when a single product exceeds the 5MB batch size limit', () => {
-      // Create a product whose JSON representation is larger than 5MB
+    it('should throw when a single product exceeds the batch size limit', () => {
+      // Create a product whose JSON representation is larger than 5MB (default limit)
       const hugeDescription = 'x'.repeat(6 * 1024 * 1024); // ~6MB string
       const hugeProduct: Product = {
         id: 'huge',
@@ -173,7 +173,7 @@ describe('BatchService', () => {
       };
 
       expect(() => batchService.addProduct(hugeProduct)).toThrow(
-        /Product size \(\d+\.\d+MB\) exceeds 5MB batch size limit/
+        /Product size \(\d+\.\d+MB\) exceeds \d+MB batch size limit/
       );
     });
   });

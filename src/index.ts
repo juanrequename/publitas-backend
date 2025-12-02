@@ -1,3 +1,4 @@
+import './config';
 import path from 'path';
 import ExternalService from './services/external.service';
 import { BatchService } from './services/batch.service';

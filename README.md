@@ -27,6 +27,7 @@ A batch should
 # Clone the repository
 git clone <repository-url>
 cd publitas-backend
+cp .env.example .env
 
 # Install
 npm install

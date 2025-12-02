@@ -7,6 +7,8 @@ services:
     volumes:
       # Mount data directory to allow processing different feed files
       - ./data:/app/data:ro
+    env_file:
+      - .env
     environment:
       - NODE_ENV=production
     # Keep container running instead of executing once
