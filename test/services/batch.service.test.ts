@@ -5,6 +5,17 @@ import ExternalService from '../../src/services/external.service';
 // Mock ExternalService
 jest.mock('../../src/services/external.service');
 
+// Mock the logger to prevent console output during tests
+jest.mock('../../src/utils/logger', () => ({
+  default: {
+    info: jest.fn(),
+    error: jest.fn(),
+    warn: jest.fn(),
+    debug: jest.fn(),
+  },
+  __esModule: true,
+}));
+
 describe('BatchService', () => {
   let mockExternalService: jest.Mocked<ExternalService>;
   let batchService: BatchService;

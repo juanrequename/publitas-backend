@@ -1,3 +1,5 @@
+import logger from '../utils/logger';
+
 class ExternalService {
   private static readonly ONE_MEGA_BYTE = 1_048_576.0;
   private batchNum: number;
@@ -13,12 +15,13 @@ class ExternalService {
 
   private prettyPrint(batch: string): void {
     const products = JSON.parse(batch);
-    console.log(`\x1b[1mReceived batch ${this.batchNum.toString().padStart(4, ' ')}\x1b[22m`);
-    console.log(
-      `Size: ${(Buffer.byteLength(batch) / ExternalService.ONE_MEGA_BYTE).toFixed(2).padStart(10, ' ')}MB`
-    );
-    console.log(`Products: ${products.length.toString().padStart(8, ' ')}`);
-    console.log();
+    const sizeMB = (Buffer.byteLength(batch) / ExternalService.ONE_MEGA_BYTE).toFixed(2);
+
+    logger.info(`\x1b[1mReceived batch${String(this.batchNum).padStart(4)}\x1b[22m`);
+    logger.info(`Size: ${sizeMB.padStart(10)}MB`);
+    logger.info(`Products: ${String(products.length).padStart(8)}`);
+    logger.info('');
+    logger.info('');
   }
 }
 

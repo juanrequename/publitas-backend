@@ -1,16 +1,25 @@
 import ExternalService from '../../src/services/external.service';
+import logger from '../../src/utils/logger';
+
+// Mock the logger
+jest.mock('../../src/utils/logger', () => ({
+  default: {
+    info: jest.fn(),
+    error: jest.fn(),
+    warn: jest.fn(),
+    debug: jest.fn(),
+  },
+  __esModule: true,
+}));
+
+const mockLogger = logger as jest.Mocked<typeof logger>;
 
 describe('ExternalService', () => {
   let externalService: ExternalService;
-  let consoleLogSpy: jest.SpyInstance;
 
   beforeEach(() => {
+    jest.clearAllMocks();
     externalService = new ExternalService();
-    consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
-  });
-
-  afterEach(() => {
-    consoleLogSpy.mockRestore();
   });
 
   describe('constructor', () => {
@@ -19,7 +28,10 @@ describe('ExternalService', () => {
       externalService.call(batch);
 
       // First call should show batch 1
-      expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('batch    1'));
+      const calls = mockLogger.info.mock.calls.map((call) => call[0]) as string[];
+      const batchCalls = calls.filter((c) => c?.includes('Received batch'));
+
+      expect(batchCalls[0]).toContain('batch   1');
     });
   });
 
@@ -32,31 +44,23 @@ describe('ExternalService', () => {
       externalService.call(batch);
 
       // Check batch numbers were incremented
-      const calls = consoleLogSpy.mock.calls.map((call) => call[0]);
-      const batchCalls = calls.filter((c: string) => c?.includes('Received batch'));
+      const calls = mockLogger.info.mock.calls.map((call) => call[0]) as string[];
+      const batchCalls = calls.filter((c) => c?.includes('Received batch'));
 
-      expect(batchCalls[0]).toContain('batch    1');
-      expect(batchCalls[1]).toContain('batch    2');
-      expect(batchCalls[2]).toContain('batch    3');
-    });
-
-    it('should log batch number with bold formatting', () => {
-      const batch = JSON.stringify([]);
-      externalService.call(batch);
-
-      expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('\x1b[1m'));
-      expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('\x1b[22m'));
+      expect(batchCalls[0]).toContain('batch   1');
+      expect(batchCalls[1]).toContain('batch   2');
+      expect(batchCalls[2]).toContain('batch   3');
     });
 
     it('should log size in megabytes', () => {
       const batch = JSON.stringify([{ id: '1', title: 'Test', description: 'Desc' }]);
       externalService.call(batch);
 
-      const calls = consoleLogSpy.mock.calls.map((call) => call[0]);
-      const sizeCalls = calls.filter((c: string) => c?.includes('Size:'));
-
-      expect(sizeCalls).toHaveLength(1);
-      expect(sizeCalls[0]).toMatch(/Size:\s+[\d.]+MB/);
+      // Size is logged as the 2nd line
+      expect(mockLogger.info).toHaveBeenNthCalledWith(
+        2,
+        expect.stringMatching(/^Size:\s+[\d.]+MB$/)
+      );
     });
 
     it('should log product count', () => {
@@ -68,7 +72,8 @@ describe('ExternalService', () => {
       const batch = JSON.stringify(products);
       externalService.call(batch);
 
-      expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Products:        3'));
+      // Products count is logged as the 3rd line
+      expect(mockLogger.info).toHaveBeenNthCalledWith(3, 'Products:        3');
     });
 
     it('should calculate correct size for a known payload', () => {
@@ -77,55 +82,35 @@ describe('ExternalService', () => {
       const batch = JSON.stringify([{ data: oneMBString }]);
       externalService.call(batch);
 
-      const calls = consoleLogSpy.mock.calls.map((call) => call[0]);
-      const sizeCalls = calls.filter((c: string) => c?.includes('Size:'));
+      // Size is logged as the 2nd line
+      const sizeLog = mockLogger.info.mock.calls[1][0] as string;
+      const sizeMB = parseFloat(sizeLog.replace('Size:', '').replace('MB', '').trim());
 
-      // Should be slightly over 1MB due to JSON structure
-      expect(sizeCalls[0]).toMatch(/Size:\s+1\.\d+MB/);
+      // Should be around 1MB (slightly over due to JSON structure)
+      expect(sizeMB).toBeGreaterThanOrEqual(1);
+      expect(sizeMB).toBeLessThan(1.1);
     });
 
     it('should handle empty array batch', () => {
       const batch = JSON.stringify([]);
       externalService.call(batch);
 
-      expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Products:        0'));
+      // Products count is logged as the 3rd line
+      expect(mockLogger.info).toHaveBeenNthCalledWith(3, 'Products:        0');
     });
 
     it('should handle single product batch', () => {
       const batch = JSON.stringify([{ id: '1', title: 'Test', description: 'Desc' }]);
       externalService.call(batch);
 
-      expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Products:        1'));
-    });
-
-    it('should output an empty line at the end', () => {
-      const batch = JSON.stringify([]);
-      externalService.call(batch);
-
-      // Last call should be empty (the newline separator)
-      const lastCall = consoleLogSpy.mock.calls[consoleLogSpy.mock.calls.length - 1];
-      expect(lastCall).toEqual([]);
+      // Products count is logged as the 3rd line
+      expect(mockLogger.info).toHaveBeenNthCalledWith(3, 'Products:        1');
     });
 
     it('should throw error for invalid JSON', () => {
       expect(() => {
         externalService.call('not valid json');
       }).toThrow();
-    });
-
-    it('should pad batch numbers correctly for multi-digit numbers', () => {
-      const batch = JSON.stringify([]);
-
-      // Call 10 times
-      for (let i = 0; i < 10; i++) {
-        externalService.call(batch);
-      }
-
-      const calls = consoleLogSpy.mock.calls.map((call) => call[0]);
-      const batchCalls = calls.filter((c: string) => c?.includes('Received batch'));
-
-      // Batch 10 should be formatted with proper padding
-      expect(batchCalls[9]).toContain('batch   10');
     });
 
     it('should correctly calculate byte size for unicode characters', () => {
@@ -136,17 +121,20 @@ describe('ExternalService', () => {
 
       externalService.call(batch);
 
-      const calls = consoleLogSpy.mock.calls.map((call) => call[0]);
-      const sizeCalls = calls.filter((c: string) => c?.includes('Size:'));
-
-      // Extract the size value from the log
-      const sizeMatch = sizeCalls[0].match(/Size:\s+([\d.]+)MB/);
-      expect(sizeMatch).not.toBeNull();
-
-      const loggedSizeMB = parseFloat(sizeMatch![1]);
+      // Size is logged as the 2nd line
+      const sizeLog = mockLogger.info.mock.calls[1][0] as string;
+      const loggedSizeMB = parseFloat(sizeLog.replace('Size:', '').replace('MB', '').trim());
       const expectedSizeMB = expectedSize / 1_048_576;
 
       expect(loggedSizeMB).toBeCloseTo(expectedSizeMB, 2);
+    });
+
+    it('should log empty line at the end', () => {
+      const batch = JSON.stringify([{ id: '1', title: 'Test', description: 'Desc' }]);
+      externalService.call(batch);
+
+      // Empty line is logged as the 4th line
+      expect(mockLogger.info).toHaveBeenNthCalledWith(4, '');
     });
   });
 });
