@@ -43,6 +43,9 @@ export async function parseProductFeed(
     let currentText = '';
     let insideItem = false; // Whether we're inside an <item> element
 
+    // Promise queue to chain async operations sequentially
+    let pending: Promise<void> = Promise.resolve();
+
     // Handle opening tags - detect when we enter an <item> and track nested tags
     parser.on('opentag', (node) => {
       const tagName = getLocalName(node.name);
@@ -88,7 +91,9 @@ export async function parseProductFeed(
 
         // Only add products that have all required fields
         if (isValidProduct(currentProduct)) {
-          batchService.addProduct(currentProduct);
+          // Copy and chain the async addProduct operation to maintain order
+          const product = { ...currentProduct } as Product;
+          pending = pending.then(() => batchService.addProduct(product));
         }
 
         currentProduct = {};
@@ -103,8 +108,11 @@ export async function parseProductFeed(
     });
 
     parser.on('end', () => {
-      batchService.flush();
-      resolve();
+      // Wait for all pending addProduct operations, then flush remaining batch
+      pending
+        .then(() => batchService.flush())
+        .then(resolve)
+        .catch(reject);
     });
 
     // Stream the file through the parser for memory-efficient processing

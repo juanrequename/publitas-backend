@@ -44,10 +44,10 @@ export class BatchService {
    * Serializes all accumulated products as a JSON array and sends them
    * to the external service. After flushing, the batch is reset to empty.
    */
-  flush(): void {
+  async flush(): Promise<void> {
     if (this.batch.length > 0) {
       const jsonBatch = JSON.stringify(this.batch);
-      this.externalService.call(jsonBatch);
+      await this.externalService.call(jsonBatch);
       this.batch = [];
       this.currentBatchSize = EMPTY_JSON_ARRAY_SIZE;
     }
@@ -66,7 +66,7 @@ export class BatchService {
    *
    * @param product - The product to add to the batch.
    */
-  addProduct(product: Product): void {
+  async addProduct(product: Product): Promise<void> {
     const productJson = JSON.stringify(product);
     const productByteSize = Buffer.byteLength(productJson, 'utf8');
 
@@ -84,7 +84,7 @@ export class BatchService {
       this.currentBatchSize + this.calculateAdditionalSize(productByteSize) >=
       config.maxBatchSize
     ) {
-      this.flush();
+      await this.flush();
     }
 
     // Add product and update the tracked byte size
