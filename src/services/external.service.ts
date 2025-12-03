@@ -1,6 +1,10 @@
 import logger from '../utils/logger';
 
-class ExternalService {
+export interface IExternalService {
+  call(batch: string): Promise<void>;
+}
+
+class ExternalService implements IExternalService {
   private static readonly ONE_MEGA_BYTE = 1_048_576.0;
   private batchNum: number;
 
