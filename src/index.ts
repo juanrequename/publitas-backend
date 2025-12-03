@@ -9,13 +9,13 @@ let batchService: BatchService;
 
 process.on('SIGINT', async () => {
   logger.info('Received SIGINT, flushing remaining batch...');
-  batchService?.flush();
+  await batchService?.flush();
   process.exit(0);
 });
 
 process.on('SIGTERM', async () => {
   logger.info('Received SIGTERM, flushing remaining batch...');
-  batchService?.flush();
+  await batchService?.flush();
   process.exit(0);
 });
 
