@@ -65,7 +65,8 @@ publitas-backend/
 │   │   └── product.ts           # Product type definitions
 │   ├── feed-parser.ts           # XML feed parsing and transformation
 │   └── index.ts                 # Library entry point
-├── test/                        # Unit tests
+├── test/
+|── ├── integration/             # Integration tests
 │   ├── services/
 │   │   ├── batch.service.test.ts
 │   │   └── external.service.test.ts
