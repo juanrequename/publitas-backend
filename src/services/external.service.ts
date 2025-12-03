@@ -8,7 +8,7 @@ class ExternalService {
     this.batchNum = 0;
   }
 
-  public call(batch: string): void {
+  public async call(batch: string): Promise<void> {
     this.batchNum += 1;
     this.prettyPrint(batch);
   }
