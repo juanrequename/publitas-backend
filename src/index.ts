@@ -7,17 +7,18 @@ import logger from './utils/logger';
 
 let batchService: BatchService;
 
-process.on('SIGINT', async () => {
-  logger.info('Received SIGINT, flushing remaining batch...');
-  await batchService?.flush();
+async function gracefulShutdown(signal: string): Promise<void> {
+  logger.info(`Received ${signal}, flushing remaining batch...`);
+  try {
+    await batchService?.flush();
+  } catch (error) {
+    logger.error({ err: error }, 'Error flushing batch');
+  }
   process.exit(0);
-});
+}
 
-process.on('SIGTERM', async () => {
-  logger.info('Received SIGTERM, flushing remaining batch...');
-  await batchService?.flush();
-  process.exit(0);
-});
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 
 async function main(): Promise<void> {
   const feedPath = path.join(process.cwd(), 'data', 'feed.xml');

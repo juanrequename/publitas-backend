@@ -11,6 +11,8 @@
     "build": "tsc",
     "start": "node dist/src/index.js",
     "test": "jest",
+    "test:unit": "jest --testPathIgnorePatterns=integration",
+    "test:integration": "jest --testPathPattern=integration",
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix",
     "format": "prettier --check \"src/**/*.ts\"",
